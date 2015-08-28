@@ -39,7 +39,7 @@ class QualityAssuranceTool extends Application
         $this->input 	    = $input;
         $this->output 	    = $output;
         $this->workingDir   = realpath(".");
-        $this->binDir       = realpath(__DIR__."/../../bin/");
+        $this->binDir       = realpath(__DIR__."/../../../bin/");
 
         $output->writeln("Quality Assurance Hooks");
 
