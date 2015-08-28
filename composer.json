@@ -1,0 +1,22 @@
+{
+    "name": "just/quality-assurance-hooks",
+    "description": "Some hooks to keep your code in JUST format",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Cees van Egmond",
+            "email": "cees.vanegmond@wearejust.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.3",
+        "symfony/console": "~2",
+        "fabpot/php-cs-fixer": "~1"
+    },
+    "bin": [
+        "pre-commit"
+    ],
+    "config": {
+        "preferred-install": "dist"
+    }
+}

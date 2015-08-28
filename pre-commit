@@ -1,0 +1,218 @@
+#!/usr/bin/php
+<?php
+
+require realpath(__DIR__) . "/vendor/autoload.php";
+
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Application;
+
+class QualityAssuranceTool extends Application
+{
+    /**
+     * @var InputInterface
+     */
+    private $input;
+
+    /**
+     * @var OutputInterface
+     */
+    private $output;
+
+    /**
+     * @var string
+     */
+    private $workingDir;
+
+    /**
+     * @var string
+     */
+    private $binDir;
+
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|void
+     */
+    public function doRun(InputInterface $input, OutputInterface $output)
+    {
+        $this->input 	    = $input;
+        $this->output 	    = $output;
+        $this->workingDir   = realpath(".");
+        $this->binDir       = realpath(__DIR__."/../../bin/");
+
+        $output->writeln("Quality Assurance Hooks");
+
+        // Fetching commited files
+        $output->writeln("<info>- Fetching commited files</info>");
+        $files = $this->fetchingCommitedFiles();
+
+        // Running composer.lock check
+        $output->writeln("<info>- Running composer.lock check</info>");
+        $this->checkComposerLock($files);
+
+        // Validate composer
+        $output->writeln("<info>- Validate composer.json</info>");
+        $this->validateComposer();
+
+        // Running PHPLint
+        $output->writeln("<info>- Running PHPLint</info>");
+        $this->phpLint($files);
+
+        // Running PHP-CS-Fixer
+        $output->writeln("<info>- Running PHP-CS-Fixer</info>");
+        $this->phpCsFixer();
+
+        // Check merge conflicts
+        $output->writeln("<info>- Check GIT merge conflicts</info>");
+        $this->mergeConflicts($files);
+
+        // Running Sensiolabs Security Advisories Checker
+        $output->writeln("<info>- Running Sensiolabs Security Advisories Checker</info>");
+        $this->securityAdvisoriesChecker();
+    }
+
+    /**
+     * @return array
+     */
+    private function fetchingCommitedFiles()
+    {
+        exec("git rev-parse --verify HEAD 2> /dev/null", $output, $rc);
+
+        $against = $rc == 0 ? "HEAD" : "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+        exec("git diff-index --cached --name-status $against | egrep '^(A|M)' | awk '{print $2;}'", $files);
+
+        return $files;
+    }
+
+    /**
+     * @param array $files
+     * @throws Exception
+     */
+    private function checkComposerLock(array $files)
+    {
+        $composerJsonDetected = false;
+        $composerLockDetected = false;
+
+        foreach ($files as $file) {
+            if ($file === "composer.json") {
+                $composerJsonDetected = true;
+            }
+
+            if ($file === "composer.lock") {
+                $composerLockDetected = true;
+            }
+        }
+
+        if ($composerJsonDetected && !$composerLockDetected) {
+            throw new Exception("composer.lock moet mee gecommit worden wanneer composer.json is gewijzigd.");
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function validateComposer()
+    {
+        $output = [];
+        exec("php composer.phar validate ".$this->workingDir."/composer.json", $output, $return);
+
+        if(count($output) > 1) {
+            throw new Exception(implode("\n", $output));
+        }
+    }
+
+    /**
+     * @param array $files
+     * @throws Exception
+     */
+    private function phpLint(array $files)
+    {
+        $errors = [];
+        foreach ($files as $file) {
+
+            if (!preg_match('/\.php$/', $file)) {
+                continue;
+            }
+
+            $output = [];
+            exec("php -l ".escapeshellarg($file), $output, $return);
+            if ($return != 0) $errors[] = trim(implode("\n", $output));
+        }
+
+        if (count($errors)) {
+            throw new Exception(implode("\n", $errors));
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function phpCsFixer()
+    {
+        $output = [];
+
+        $csFile = $this->workingDir . "/.php_cs";
+        if (file_exists($csFile)) {
+            exec($this->binDir . "/php-cs-fixer fix --verbose", $output);
+        } else {
+            exec($this->binDir . "/php-cs-fixer fix . --verbose", $output);
+        }
+
+        // Opruimen resultaten
+        foreach ($output as $key => $value) {
+            if (
+                empty(trim($value)) ||
+                empty(trim($value, "?I.FE")) ||        // Statusen filteren
+                preg_match("#Loaded config from \"(.*)\"#i", $value) ||
+                preg_match("#Legend: (.*)#i", $value) ||
+                preg_match("#Fixed all files in (.*) seconds, (.*) MB memory used#i", $value)
+            ) {
+                unset($output[$key]);
+                continue;
+            }
+        }
+
+        if (count($output) > 0) {
+            throw new Exception(implode("\n", $output));
+        }
+    }
+
+
+    /**
+     * @param array $files
+     * @throws Exception
+     */
+    private function mergeConflicts(array $files)
+    {
+        $output = [];
+        $mergeFiles = [];
+        foreach ($files as $file) {
+            if ($file != "jcid-pre-commit") {
+                exec("grep '<<<<<<<' " . $this->workingDir . "/" . escapeshellarg($file), $output);
+                if (count($output) > 0) {
+                    $mergeFiles[] = $file;
+                }
+            }
+        }
+
+        if (count($mergeFiles) > 0) {
+            throw new Exception("Er zijn merge conflicts gevonden in:\n" . implode("\n - ", $mergeFiles));
+        }
+    }
+
+
+    /**
+     * @throws Exception
+     */
+    private  function securityAdvisoriesChecker() {
+        $output = [];
+        exec("curl -s -H 'Accept: text/plain' https://security.sensiolabs.org/check_lock -F lock=@".$this->workingDir."/composer.lock", $output);
+        if($output[3] != "No known* vulnerabilities detected.") {
+            throw new Exception(implode("\n", array_slice($output, 7, count($output))));
+        }
+    }
+}
+
+$console = new QualityAssuranceTool();
+$console->run();
