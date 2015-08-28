@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-require realpath(__DIR__) . "/vendor/autoload.php";
+require realpath(__DIR__) . "/../../autoload.php";
 
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
