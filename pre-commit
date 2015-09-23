@@ -68,8 +68,8 @@ class QualityAssuranceTool extends Application
         $this->mergeConflicts($files);
 
         // Running Sensiolabs Security Advisories Checker
-        $output->writeln("<info>- Running Sensiolabs Security Advisories Checker</info>");
-        $this->securityAdvisoriesChecker();
+        //$output->writeln("<info>- Running Sensiolabs Security Advisories Checker</info>");
+        //$this->securityAdvisoriesChecker();
     }
 
     /**
