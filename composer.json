@@ -16,6 +16,17 @@
     "bin": [
         "pre-commit"
     ],
+    "autoload": {
+        "psr-0": { "": "src/" }
+    },
+    "scripts": {
+        "pre-update-cmd": [
+            "Just\\Hooks::checkHooks"
+        ],
+        "pre-install-cmd": [
+            "Just\\Hooks::checkHooks"
+        ]
+    },
     "config": {
         "preferred-install": "dist"
     }
