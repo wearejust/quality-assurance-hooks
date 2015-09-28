@@ -8,6 +8,10 @@ class Hooks
 {
     public static function checkHooks(Event $event)
     {
+        if (!$event->isDevMode()) {
+            return null;
+        }
+
         $io = $event->getIO();
         $newPath = __DIR__.'/../../../../../.git/hooks/pre-commit';
 
