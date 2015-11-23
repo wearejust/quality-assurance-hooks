@@ -6,6 +6,10 @@ use Composer\Script\Event;
 
 class Hooks
 {
+    /**
+     * @param Event $event
+     * @return null
+     */
     public static function checkHooks(Event $event)
     {
         if (!$event->isDevMode()) {

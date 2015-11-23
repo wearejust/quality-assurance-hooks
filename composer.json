@@ -6,10 +6,14 @@
         {
             "name": "Cees van Egmond",
             "email": "cees.vanegmond@wearejust.com"
+        },
+        {
+            "name": "John in 't Hout",
+            "email": "john.inthout@wearejust.com"
         }
     ],
     "require": {
-        "php": ">=5.3.3",
+        "php": ">=5.4",
         "symfony/console": "~2",
         "fabpot/php-cs-fixer": "~1"
     },

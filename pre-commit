@@ -66,10 +66,6 @@ class QualityAssuranceTool extends Application
         // Check merge conflicts
         $output->writeln("<info>- Check GIT merge conflicts</info>");
         $this->mergeConflicts($files);
-
-        // Running Sensiolabs Security Advisories Checker
-        //$output->writeln("<info>- Running Sensiolabs Security Advisories Checker</info>");
-        //$this->securityAdvisoriesChecker();
     }
 
     /**
@@ -152,12 +148,7 @@ class QualityAssuranceTool extends Application
     {
         $output = [];
 
-        $csFile = $this->workingDir . "/.php_cs";
-        if (file_exists($csFile)) {
-            exec($this->binDir . "/php-cs-fixer fix --verbose", $output);
-        } else {
-            exec($this->binDir . "/php-cs-fixer fix . --verbose", $output);
-        }
+        exec($this->binDir . "/php-cs-fixer fix --verbose", $output);
 
         // Opruimen resultaten
         foreach ($output as $key => $value) {
@@ -188,7 +179,7 @@ class QualityAssuranceTool extends Application
         $output = [];
         $mergeFiles = [];
         foreach ($files as $file) {
-            if ($file != "jcid-pre-commit") {
+            if ($file != "pre-commit") {
                 exec("grep '<<<<<<<' " . $this->workingDir . "/" . escapeshellarg($file), $output);
                 if (count($output) > 0) {
                     $mergeFiles[] = $file;
@@ -198,18 +189,6 @@ class QualityAssuranceTool extends Application
 
         if (count($mergeFiles) > 0) {
             throw new Exception("Er zijn merge conflicts gevonden in:\n" . implode("\n - ", $mergeFiles));
-        }
-    }
-
-
-    /**
-     * @throws Exception
-     */
-    private  function securityAdvisoriesChecker() {
-        $output = [];
-        exec("curl -s -H 'Accept: text/plain' https://security.sensiolabs.org/check_lock -F lock=@".$this->workingDir."/composer.lock", $output);
-        if($output[3] != "No known* vulnerabilities detected.") {
-            throw new Exception(implode("\n", array_slice($output, 7, count($output))));
         }
     }
 }
