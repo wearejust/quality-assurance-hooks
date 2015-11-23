@@ -12,32 +12,39 @@ class Hooks
      */
     public static function checkHooks(Event $event)
     {
+        $io = $event->getIO();
         if (!$event->isDevMode()) {
             return null;
         }
 
-        $io = $event->getIO();
-        $newPath = __DIR__.'/../../../../../.git/hooks/pre-commit';
-
-        $gitHook = @file_get_contents($newPath);
-        
-        $docHookPath = __DIR__.'/../../../../../';
-        $docHookFile = $docHookPath . 'bin/pre-commit';
-        
-        if(!file_exists($docHookPath . 'bin/pre-commit')){
-            $docHookFile = $docHookPath . 'laravel/bin/pre-commit';
+        $projectRoot = realpath(__DIR__ . '/../../../../../');
+        $packageHook = $projectRoot . 'bin/pre-commit';
+        if (strpos($projectRoot, 'laravel') !== false) {
+            $projectRoot = realpath($projectRoot . '/../');
+            $packageHook = $projectRoot . '/laravel/bin/pre-commit';
         }
-        
-        $docHook = @file_get_contents($docHookFile);
 
-        if ($gitHook !== $docHook) {
-            $io->write('<error>GIT hooks ontbreken</error>');
-                exec(
-                    'cd .git/hooks && '.
-                    'ln -s ../../bin/pre-commit ./pre-commit'
-                );
-                copy(__DIR__ . '/../../.php_cs', __DIR__.'/../../../../../.php_cs');
-                chmod($newPath, 0755);
+        $hooksDir = realpath($projectRoot . '/.git/hooks/');
+        $newHook  = $hooksDir . '/pre-commit';
+
+        if (@file_get_contents($newHook) !== @file_get_contents($packageHook)) {
+            $io->write('<comment>GIT hooks are missing</comment>');
+            $symlink = symlink($packageHook, $newHook);
+
+            if (false === $symlink) {
+                $io->write('<error>Failed to symlink the GIT hooks</error>');
+
+                return null;
+            }
+
+            chmod($newHook, 0755);
+
+            $defaultPhpCSFile = realpath(__DIR__ . '/../../.php_cs.example');
+            $newPhpCSFile     = $projectRoot . '/.php_cs';
+
+            copy($defaultPhpCSFile, $newPhpCSFile);
         }
+
+        $io->write('<info>GIT hooks are succesfully installed</info>');
     }
 }
