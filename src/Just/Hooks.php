@@ -18,7 +18,7 @@ class Hooks
         }
 
         $projectRoot = realpath(__DIR__ . '/../../../../../');
-        $packageHook = $projectRoot . 'bin/pre-commit';
+        $packageHook = $projectRoot . '/bin/pre-commit';
         if (strpos($projectRoot, 'laravel') !== false) {
             $projectRoot = realpath($projectRoot . '/../');
             $packageHook = $projectRoot . '/laravel/bin/pre-commit';
