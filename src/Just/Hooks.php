@@ -13,7 +13,14 @@ class Hooks
     public static function checkHooks(Event $event)
     {
         $io = $event->getIO();
+
+        // Don't run pre-commit in non-dev mode
         if (!$event->isDevMode()) {
+            return null;
+        }
+
+        // Cannot install pre-commit with a windows machine
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             return null;
         }
 
