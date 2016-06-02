@@ -15,7 +15,7 @@
     "require": {
         "php": ">=5.4",
         "symfony/console": "~2",
-        "fabpot/php-cs-fixer": "~1"
+        "friendsofphp/php-cs-fixer": "~1"
     },
     "bin": [
         "pre-commit"
